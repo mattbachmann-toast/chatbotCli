@@ -19,7 +19,7 @@ func main() {
 	)
 	modelName := flag.String(
 		"model",
-		"gpt3_5",
+		"toast",
 		"which internal to use, gpt3_5, gpt4, or lorem right now. Lorem is just for returning generic text",
 	)
 	flag.Parse()

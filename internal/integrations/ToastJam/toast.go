@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"dev/mattbachmann/chatbotcli/internal/bots"
 	"dev/mattbachmann/chatbotcli/internal/integrations"
+	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -56,8 +59,46 @@ type ToastJam struct {
 	Name string
 }
 
+func getRemainingTokenTime(toastToken string) (int64, error) {
+	if toastToken == "" {
+		return 0, errors.New("no token")
+	}
+	parts := strings.Split(toastToken, ".")
+	if len(parts) != 3 {
+		return 0, errors.New("auth token invalid")
+	}
+	toastInfoRaw, err := b64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return 0, errors.New("auth token invalid")
+	}
+
+	var toastInfo map[string]interface{}
+	if err := json.Unmarshal(toastInfoRaw, &toastInfo); err != nil {
+		return 0, errors.New("auth token invalid")
+	}
+	remainingTime := int64(toastInfo["exp"].(float64)) - time.Now().Unix()
+	if remainingTime < 0 {
+		return 0, errors.New("auth token expired")
+	}
+	return remainingTime, nil
+}
+
+func formatRemainingTime(remainingTokenTime int64) string {
+	minutes := int(remainingTokenTime / 60)
+	seconds := remainingTokenTime % 60
+	return fmt.Sprintf("%d minutes and %d seconds", minutes, seconds)
+}
+
 func (b ToastJam) GetBotResponse(userLines []string, botLines []bots.BotResponse, systemPrompt string) bots.BotResponse {
 	toastToken := os.Getenv("TOAST_AUTH_TOKEN")
+	remainingTokenTime, err := getRemainingTokenTime(toastToken)
+	formattedRemainingTime := formatRemainingTime(remainingTokenTime)
+	if err != nil {
+		return bots.BotResponse{
+			Content:  err.Error(),
+			Metadata: map[string]string{},
+		}
+	}
 	toastResponse := makeCall(
 		userLines,
 		botLines,
@@ -66,8 +107,10 @@ func (b ToastJam) GetBotResponse(userLines []string, botLines []bots.BotResponse
 		toastToken,
 	)
 	return bots.BotResponse{
-		Content:  toastResponse.Messages[len(toastResponse.Messages)-1].Content,
-		Metadata: map[string]string{},
+		Content: toastResponse.Messages[len(toastResponse.Messages)-1].Content,
+		Metadata: map[string]string{
+			"auth_expires_in": formattedRemainingTime,
+		},
 	}
 }
 
