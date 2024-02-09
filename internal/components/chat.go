@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"dev/mattbachmann/chatbotcli/internal/bot_metadata"
 	"dev/mattbachmann/chatbotcli/internal/bots"
+	"dev/mattbachmann/chatbotcli/internal/integrations/ToastJam"
 	"dev/mattbachmann/chatbotcli/internal/integrations/openai"
 	"dev/mattbachmann/chatbotcli/internal/presentation"
 	"fmt"
@@ -84,6 +85,11 @@ func InitialModel(systemPrompt string, modelName string) ChatModel {
 }
 
 func GetAIModel(name string) bots.ChatBotI {
+	if name == "toast" {
+		return ToastJam.ToastJam{
+			Name: "Toast Jam",
+		}
+	}
 	model := openai.GetGPTModel(name)
 	if model == nil {
 		model = bots.GetChatBot(name)

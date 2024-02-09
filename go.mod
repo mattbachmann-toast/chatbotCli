@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.2
 	github.com/charmbracelet/lipgloss v0.6.0
+	github.com/google/uuid v1.6.0
 	github.com/muesli/reflow v0.3.0
 	github.com/shopspring/decimal v1.3.1
 	gopkg.in/loremipsum.v1 v1.1.2
